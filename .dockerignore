@@ -1,0 +1,34 @@
+# Build working directories
+
+# Build files
+build_openroad.log
+
+# Test working directories
+flow/results
+flow/logs
+flow/reports
+flow/objects
+flow/tech
+
+# Tar archives
+flow/*tar.gz
+flow/run-me*.sh
+flow/vars*.sh
+flow/vars*.tcl
+flow/vars*.gdb
+flow/versions.txt
+
+# Common temp files
+flow/*.log
+
+# Platforms
+
+# network
+.nfs*
+
+# core dumps
+core*
+
+# git
+.git
+.gitignore
