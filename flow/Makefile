@@ -63,6 +63,7 @@
 # DESIGN_CONFIG=./designs/sky130hd/jpeg/config.mk
 # DESIGN_CONFIG=./designs/sky130hd/microwatt/config.mk
 # DESIGN_CONFIG=./designs/sky130hd/riscv32i/config.mk
+DESIGN_CONFIG=./designs/sky130hd/tt_inverter/config.mk
 
 # DESIGN_CONFIG=./designs/sky130hs/aes/config.mk
 # DESIGN_CONFIG=./designs/sky130hs/gcd/config.mk

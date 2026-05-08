@@ -1,0 +1,44 @@
+# TinyTapeout project metadata
+# Submit via https://tinytapeout.com
+
+---
+project:
+  title:       "CMOS Inverter"
+  description: "Minimal RTL-to-GDSII CMOS inverter in SKY130HD via OpenLane.
+                Demonstrates the full TT flow: synthesis, floorplan, placement,
+                routing, extraction, and signoff. ui_in[0] is inverted to
+                uo_out[0]; all other IOs are unused."
+  author:      "R.Pavithra Guru"
+  discord:     ""
+  github:      ""
+  email:       "jayadithya2004@gmail.com"
+
+module:
+  name:        "tt_um_inverter"
+  verilog:
+    - src/inverter.v
+    - src/tt_um_inverter.v
+
+  # Port interface — must match TinyTapeout v5 wrapper exactly
+  io:
+    ui_in:
+      - "0: inverter input"
+      - "7:1: unused (tied low inside module)"
+    uo_out:
+      - "0: inverted output"
+      - "7:1: unused (always 0)"
+    uio:    "unused"
+    clk:    "100 MHz TT clock (present, unused by logic)"
+    rst_n:  "active-low reset (present, unused by logic)"
+    ena:    "power enable (always 1)"
+
+pdk:
+  name:       sky130A
+  cell_library: sky130_fd_sc_hd
+
+openlane:
+  version: "2023.07.19-1"
+  die_area: "0 0 160 100"   # µm × µm — 1 TT tile
+  core_area: "10 10 150 90"
+  clock_period_ns: 10.0
+  utilization_pct: 35

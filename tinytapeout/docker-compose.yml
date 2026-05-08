@@ -1,0 +1,66 @@
+# ============================================================
+# docker-compose.yml — tt_um_inverter OpenLane flow
+#
+# Prerequisites:
+#   export PDK_ROOT=$HOME/pdks    # SKY130A installed here
+#   docker compose run --rm flow  # interactive shell
+#   docker compose run --rm flow bash scripts/run_flow.sh full
+# ============================================================
+version: "3.8"
+
+x-common-env: &common-env
+  PDK_ROOT:         /pdks
+  PDK:              sky130A
+  STD_CELL_LIBRARY: sky130_fd_sc_hd
+  DESIGN_NAME:      tt_um_inverter
+  PROJECT_ROOT:     /project
+  OPENLANE_ROOT:    /openlane
+
+x-common-volumes: &common-volumes
+  - type: bind
+    source: .
+    target: /project
+  - type: bind
+    # Resolves ${PDK_ROOT} from the host shell environment.
+    # Run: export PDK_ROOT=/path/to/pdks  before docker compose up
+    source: ${PDK_ROOT:-~/.pdks}
+    target: /pdks
+
+services:
+
+  # ── Full RTL-to-GDSII flow ─────────────────────────────────
+  flow:
+    image: efabless/openlane:2023.07.19-1
+    working_dir: /openlane
+    volumes: *common-volumes
+    environment: *common-env
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "ln -sf /project/openlane/tt_um_inverter /openlane/designs/tt_um_inverter &&
+       flow.tcl -design tt_um_inverter -tag run_001 -overwrite"
+
+  # ── Interactive shell (manual stage control) ──────────────
+  shell:
+    image: efabless/openlane:2023.07.19-1
+    working_dir: /openlane
+    volumes: *common-volumes
+    environment: *common-env
+    stdin_open: true
+    tty: true
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "ln -sf /project/openlane/tt_um_inverter /openlane/designs/tt_um_inverter &&
+       exec bash"
+
+  # ── Simulation (icarus + vvp) ─────────────────────────────
+  sim:
+    image: hdlc/sim:iverilog
+    working_dir: /project/test
+    volumes: *common-volumes
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "iverilog -g2012 -o /tmp/sim
+         tb_tt_um_inverter.v
+         ../src/inverter.v
+         ../src/tt_um_inverter.v
+       && vvp /tmp/sim"
