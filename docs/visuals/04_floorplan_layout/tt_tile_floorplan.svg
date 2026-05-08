@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="440" viewBox="0 0 600 440">
+  <style>
+    .bg   { fill:#f8fafc; stroke:#cbd5e1; stroke-width:1; }
+    .die  { fill:#fff7ed; stroke:#c2410c; stroke-width:2.5; }
+    .core { fill:#eff6ff; stroke:#1d4ed8; stroke-width:2; }
+    .pdn  { fill:none; stroke:#16a34a; stroke-width:1; stroke-dasharray:3,2; opacity:0.7; }
+    .pdnh { fill:none; stroke:#7c3aed; stroke-width:1; stroke-dasharray:3,2; opacity:0.7; }
+    .tap  { fill:#fef9c3; stroke:#ca8a04; stroke-width:1; }
+    .cell { fill:#dbeafe; stroke:#1d4ed8; stroke-width:0.5; }
+    .io   { fill:#dcfce7; stroke:#15803d; stroke-width:1; }
+    .tb   { font-family:monospace; font-size:11px; font-weight:bold; }
+    .ti   { font-family:monospace; font-size:9px; fill:#6b7280; }
+    .hl   { font-family:monospace; font-size:14px; font-weight:bold; }
+    .dim  { font-family:monospace; font-size:10px; fill:#374151; }
+  </style>
+
+  <rect width="600" height="440" rx="8" class="bg"/>
+  <text x="300" y="22" text-anchor="middle" class="hl" fill="#1e3a5f">TinyTapeout Tile Floorplan — 160 µm × 100 µm</text>
+
+  <!-- Die boundary: scale 160×100µm → 480×300px (3:1 scale), centered at (300,220) -->
+  <!-- die rect: x=60, y=60, w=480, h=300 -->
+  <rect x="60" y="60" width="480" height="300" rx="2" class="die"/>
+
+  <!-- Core area: 10µm margin → 30px margin: x=90,y=90, w=420,h=240 -->
+  <rect x="90" y="90" width="420" height="240" rx="2" class="core"/>
+
+  <!-- Die area label -->
+  <text x="300" y="52" text-anchor="middle" class="tb" fill="#c2410c">Die: 160 µm × 100 µm</text>
+
+  <!-- Core area label -->
+  <text x="300" y="108" text-anchor="middle" class="tb" fill="#1d4ed8">Core: 140 µm × 80 µm  (35% util)</text>
+
+  <!-- PDN vertical straps (met4): pitch 27.14µm → 81.4px; offset 13.57µm → 40.7px -->
+  <!-- straps from x=90+40=130, then +81px: 130,211,292,373,454 -->
+  <line x1="130" y1="90"  x2="130" y2="330" class="pdn"/>
+  <line x1="211" y1="90"  x2="211" y2="330" class="pdn"/>
+  <line x1="292" y1="90"  x2="292" y2="330" class="pdn"/>
+  <line x1="373" y1="90"  x2="373" y2="330" class="pdn"/>
+  <line x1="454" y1="90"  x2="454" y2="330" class="pdn"/>
+
+  <!-- PDN horizontal straps (met5): pitch 27.20µm → 81.6px; offset 13.6µm → 40.8px -->
+  <!-- straps from y=90+41=131, then +82px: 131,213,295 -->
+  <line x1="90" y1="131" x2="510" y2="131" class="pdnh"/>
+  <line x1="90" y1="213" x2="510" y2="213" class="pdnh"/>
+  <line x1="90" y1="295" x2="510" y2="295" class="pdnh"/>
+
+  <!-- Cell rows (29 rows, height 2.72µm → 8.16px, show schematically as thin bands) -->
+  <!-- Show representative cell rows in center area -->
+  <rect x="110" y="150" width="90" height="7" rx="1" class="cell"/>
+  <rect x="210" y="150" width="60" height="7" rx="1" class="cell"/>
+  <rect x="280" y="150" width="75" height="7" rx="1" class="cell"/>
+  <rect x="365" y="150" width="55" height="7" rx="1" class="cell"/>
+
+  <rect x="110" y="162" width="50" height="7" rx="1" class="cell"/>
+  <rect x="170" y="162" width="80" height="7" rx="1" class="cell"/>
+  <rect x="260" y="162" width="65" height="7" rx="1" class="cell"/>
+  <rect x="335" y="162" width="85" height="7" rx="1" class="cell"/>
+
+  <rect x="110" y="174" width="70" height="7" rx="1" class="cell"/>
+  <rect x="195" y="174" width="55" height="7" rx="1" class="cell"/>
+  <rect x="260" y="174" width="90" height="7" rx="1" class="cell"/>
+  <rect x="360" y="174" width="60" height="7" rx="1" class="cell"/>
+
+  <!-- Tapcell markers (every 14µm → 42px in core) -->
+  <rect x="93"  y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="135" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="177" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="219" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="261" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="303" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="345" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="387" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="429" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+  <rect x="471" y="91" width="5" height="238" rx="1" class="tap" opacity="0.4"/>
+
+  <!-- IO pin markers on die edges -->
+  <!-- West: ui_in[7:0] — 8 pins -->
+  <rect x="57" y="100" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="116" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="132" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="148" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="164" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="180" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="196" width="6" height="12" rx="1" class="io"/>
+  <rect x="57" y="212" width="6" height="12" rx="1" class="io"/>
+  <text x="52" y="175" text-anchor="end" class="ti" fill="#15803d">ui_in</text>
+  <text x="52" y="185" text-anchor="end" class="ti" fill="#15803d">[7:0]</text>
+  <text x="52" y="195" text-anchor="end" class="ti" fill="#15803d">West</text>
+
+  <!-- East: uo_out[7:0] — 8 pins -->
+  <rect x="537" y="100" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="116" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="132" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="148" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="164" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="180" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="196" width="6" height="12" rx="1" class="io"/>
+  <rect x="537" y="212" width="6" height="12" rx="1" class="io"/>
+  <text x="548" y="175" class="ti" fill="#15803d">uo_out</text>
+  <text x="548" y="185" class="ti" fill="#15803d">[7:0]</text>
+  <text x="548" y="195" class="ti" fill="#15803d">East</text>
+
+  <!-- North: uio_out/oe -->
+  <rect x="130" y="57" width="12" height="6" rx="1" class="io"/>
+  <rect x="160" y="57" width="12" height="6" rx="1" class="io"/>
+  <rect x="190" y="57" width="12" height="6" rx="1" class="io"/>
+  <rect x="220" y="57" width="12" height="6" rx="1" class="io"/>
+  <text x="260" y="54" class="ti" fill="#15803d">uio_out/oe  North</text>
+
+  <!-- South: uio_in, clk, rst_n, ena -->
+  <rect x="130" y="357" width="12" height="6" rx="1" class="io"/>
+  <rect x="160" y="357" width="12" height="6" rx="1" class="io"/>
+  <rect x="190" y="357" width="12" height="6" rx="1" class="io"/>
+  <rect x="220" y="357" width="12" height="6" rx="1" class="io"/>
+  <text x="260" y="372" class="ti" fill="#15803d">uio_in  clk  rst_n  ena  South</text>
+
+  <!-- Dimension annotations -->
+  <!-- Width: 160µm -->
+  <line x1="60"  y1="392" x2="540" y2="392" stroke="#c2410c" stroke-width="1" fill="none"/>
+  <line x1="60"  y1="388" x2="60"  y2="396" stroke="#c2410c" stroke-width="1.5"/>
+  <line x1="540" y1="388" x2="540" y2="396" stroke="#c2410c" stroke-width="1.5"/>
+  <text x="300" y="406" text-anchor="middle" class="dim" fill="#c2410c">160 µm (die width)</text>
+
+  <!-- Height: 100µm -->
+  <line x1="555" y1="60"  x2="555" y2="360" stroke="#c2410c" stroke-width="1" fill="none"/>
+  <line x1="551" y1="60"  x2="559" y2="60"  stroke="#c2410c" stroke-width="1.5"/>
+  <line x1="551" y1="360" x2="559" y2="360" stroke="#c2410c" stroke-width="1.5"/>
+  <text x="570" y="215" text-anchor="middle" class="dim" fill="#c2410c" transform="rotate(90,570,215)">100 µm (die height)</text>
+
+  <!-- Legend -->
+  <rect x="60" y="415" width="480" height="20" rx="3" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="300" y="429" text-anchor="middle" font-family="monospace" font-size="9px" fill="#0369a1">
+    ── met4 vert PDN strap (green)  ── met5 horiz PDN strap (purple)  ░ tapcell columns (yellow)  ■ std cells (blue)  ■ IO pins (green)
+  </text>
+</svg>

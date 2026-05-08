@@ -18,17 +18,19 @@
 1. [Project overview](#1-project-overview)
 2. [Repository structure](#2-repository-structure)
 3. [CMOS inverter — design](#3-cmos-inverter--design)
-4. [TinyTapeout interface](#4-tinytapeout-interface)
-5. [RTL source files](#5-rtl-source-files)
-6. [OpenLane / SKY130 flow](#6-openlane--sky130-flow)
-7. [All flow stages](#7-all-flow-stages)
-8. [Docker setup and execution](#8-docker-setup-and-execution)
-9. [RTL simulation](#9-rtl-simulation)
-10. [Expected outputs](#10-expected-outputs)
-11. [TinyTapeout signoff checklist](#11-tinytapeout-signoff-checklist)
-12. [ORFS native flow](#12-orfs-native-flow)
-13. [Key configuration reference](#13-key-configuration-reference)
-14. [OpenROAD-flow-scripts](#14-openroad-flow-scripts)
+4. [CA-235 Cellular Automaton](#4-ca-235-cellular-automaton)
+5. [TinyTapeout interface — dual mode](#5-tinytapeout-interface--dual-mode)
+6. [RTL source files](#6-rtl-source-files)
+7. [OpenLane / SKY130 flow](#7-openlane--sky130-flow)
+8. [All flow stages](#8-all-flow-stages)
+9. [Docker setup and execution](#9-docker-setup-and-execution)
+10. [RTL simulation](#10-rtl-simulation)
+11. [Expected outputs](#11-expected-outputs)
+12. [TinyTapeout signoff checklist](#12-tinytapeout-signoff-checklist)
+13. [ORFS native flow](#13-orfs-native-flow)
+14. [Key configuration reference](#14-key-configuration-reference)
+15. [Visual outputs](#15-visual-outputs)
+16. [OpenROAD-flow-scripts](#16-openroad-flow-scripts)
 
 ---
 
@@ -61,7 +63,8 @@ for native execution without Docker.
 | Parameter | Value |
 |-----------|-------|
 | Top module | `tt_um_inverter` |
-| Logic | `uo_out[0] = ~ui_in[0]` |
+| Logic (inverter mode) | `uo_out[0] = ~ui_in[0]` when `ui_in[7]=0` |
+| Logic (CA-235 mode) | `uo_out[7:0] = CA-235 next-state(ui_in)` when `ui_in[7]=1` |
 | PDK | SkyWater SKY130A |
 | Std-cell library | `sky130_fd_sc_hd` (high-density, 1.8 V) |
 | Technology node | 130 nm |
@@ -90,9 +93,11 @@ vlsi-implementation/
 │   ├── README.md                          Full technical reference →
 │   ├── src/
 │   │   ├── inverter.v                     Core RTL — assign out = ~in
-│   │   └── tt_um_inverter.v              TinyTapeout v5/v6 top module
+│   │   ├── ca235_cell.v                   CA Rule-235 single cell: next=R|~(L^C)
+│   │   ├── ca235_row.v                    N-cell row, wrap-around, genvar
+│   │   └── tt_um_inverter.v              Dual-mode: inverter + CA-235
 │   ├── test/
-│   │   └── tb_tt_um_inverter.v           256-pattern sweep testbench
+│   │   └── tb_tt_um_inverter.v           256-pattern sweep (128 inv + 128 CA-235)
 │   ├── openlane/tt_um_inverter/
 │   │   ├── config.json                    OpenLane 1.x config
 │   │   ├── pin_order.cfg                  IO pin edge assignment (W/E/N/S)
@@ -103,11 +108,21 @@ vlsi-implementation/
 │       ├── run_flow.sh                    Stage dispatcher (inside container)
 │       └── run_checks.sh                  Automated signoff checklist
 │
+├── docs/visuals/                          Section-level visual outputs
+│   ├── 01_ca235_rule/                     CA-235 truth table, evolution, gate SVG
+│   ├── 02_rtl_design/                     CMOS schematic, block diagram SVGs
+│   ├── 03_openlane_flow/                  Pipeline SVG, stage outputs, Docker
+│   ├── 04_floorplan_layout/               Tile floorplan SVG, PDN layers
+│   ├── 05_signoff_results/                Signoff checklist, timing analysis
+│   └── 06_simulation/                     Waveforms, test vectors
+│
 ├── flow/                                  OpenROAD-flow-scripts (ORFS)
 │   ├── Makefile                           ← tt_inverter active design
 │   ├── designs/
 │   │   ├── src/tt_inverter/
 │   │   │   ├── inverter.v
+│   │   │   ├── ca235_cell.v
+│   │   │   ├── ca235_row.v
 │   │   │   └── tt_um_inverter.v
 │   │   └── sky130hd/tt_inverter/
 │   │       ├── config.mk
@@ -160,7 +175,84 @@ After synthesis it maps to `sky130_fd_sc_hd__inv_1` from the SKY130HD library.
 
 ---
 
-## 4. TinyTapeout interface
+## 4. CA-235 Cellular Automaton
+
+> Visual: [truth table](docs/visuals/01_ca235_rule/ca235_truth_table.md) · [state evolution](docs/visuals/01_ca235_rule/ca235_state_evolution.md) · [gate circuit SVG](docs/visuals/01_ca235_rule/ca235_cell_circuit.svg) · [8-cell row SVG](docs/visuals/01_ca235_rule/ca235_row_8cell.svg)
+
+**Rule 235 = 0xEB = 0b11101011** — elementary CA in Wolfram's 0–255 numbering.
+
+### Truth table and minimisation
+
+```
+Neighborhood {L,C,R}  →  Rule-235 next bit
+  111 → 1    110 → 1    101 → 1    100 → 0   ← R=0, L≠C → 0
+  011 → 1    010 → 0    001 → 1    000 → 1   ← R=0, L≠C → 0
+
+Zero minterms: {010, 100}  (R=0 AND L≠C)
+
+Karnaugh map (C vs LR):
+        LR: 00  01  11  10
+  C=0:       1   1   1   0
+  C=1:       0   1   1   1
+
+Minimal SOP:  next = R | ~(L ^ C)
+Gate count:   XOR2 + INV + OR2  =  3 gates × 8 cells  =  24 gates total
+```
+
+### Gate-level circuit (single cell)
+
+![CA-235 cell circuit](docs/visuals/01_ca235_rule/ca235_cell_circuit.svg)
+
+### 8-cell wrap-around row
+
+![CA-235 8-cell row](docs/visuals/01_ca235_rule/ca235_row_8cell.svg)
+
+### State evolution (8-cell periodic boundary)
+
+```
+Seed 0x01 (single cell lit):
+  Gen 0: ░░ ░░ ░░ ░░ ░░ ░░ ░░ ██  0x01
+  Gen 1: ██ ██ ██ ██ ██ ██ ░░ ░░  0xFC
+  Gen 2: ██ ██ ██ ██ ██ ██ ██ ░░  0xFE
+  Gen 3: ██ ██ ██ ██ ██ ██ ██ ██  0xFF  ← fixed point
+
+Seed 0x55 (alternating):
+  Gen 0: ░░ ██ ░░ ██ ░░ ██ ░░ ██  0x55
+  Gen 1: ██ ░░ ██ ░░ ██ ░░ ██ ░░  0xAA  ← fixed point
+
+Fixed points: 0xFF (all-ones) and 0xAA (alternating 10101010)
+```
+
+### Verilog implementation
+
+```verilog
+// ca235_cell.v — single cell
+module ca235_cell (input wire L, C, R, output wire next);
+    assign next = R | ~(L ^ C);
+endmodule
+
+// ca235_row.v — N-cell row with wrap-around (genvar)
+module ca235_row #(parameter N = 8) (
+    input  wire [N-1:0] state,
+    output wire [N-1:0] next_state
+);
+    genvar i;
+    generate
+        for (i = 0; i < N; i = i + 1) begin : g_cell
+            ca235_cell u (.L((i==0) ? state[N-1] : state[i-1]),
+                          .C(state[i]),
+                          .R((i==N-1) ? state[0] : state[i+1]),
+                          .next(next_state[i]));
+        end
+    endgenerate
+endmodule
+```
+
+---
+
+## 5. TinyTapeout interface — dual mode
+
+> Visual: [block diagram SVG](docs/visuals/02_rtl_design/dual_mode_top_block.svg) · [port mapping](docs/visuals/02_rtl_design/port_mapping.md)
 
 Every TinyTapeout user module must implement the exact port interface below.
 
@@ -177,14 +269,22 @@ module tt_um_<name> (
 );
 ```
 
-**Inverter pin mapping:**
+**Dual-mode pin mapping:**
 
 ```
-  ui_in[0]   ──► sky130_fd_sc_hd__inv_1 ──► uo_out[0]
-  ui_in[7:1]     unused — tied off
-  uio_*          unused — all 0, OE = 0
-  clk/rst_n/ena  present, unused by combinational logic
+  ui_in[7]=0  INVERTER MODE:
+    ui_in[0]  ──► sky130_fd_sc_hd__inv_1 ──► uo_out[0]
+    uo_out[7:1] = 0
+
+  ui_in[7]=1  CA-235 MODE:
+    ui_in[7:0] ──► ca235_row (8-cell wrap) ──► uo_out[7:0]
+    (ui_in[7]=1 participates as cell 7 center)
+
+  uio_*          never driven — uio_oe = 0x00, uio_out = 0x00
+  clk/rst_n/ena  present, unused (combinational design)
 ```
+
+![Dual-mode top module](docs/visuals/02_rtl_design/dual_mode_top_block.svg)
 
 **Tile boundary (160 µm × 100 µm):**
 
@@ -201,7 +301,9 @@ module tt_um_<name> (
 
 ---
 
-## 5. RTL source files
+## 6. RTL source files
+
+> Visual: [CMOS schematic SVG](docs/visuals/02_rtl_design/cmos_inverter_schematic.svg) · [port mapping](docs/visuals/02_rtl_design/port_mapping.md)
 
 ### `src/inverter.v` — core primitive
 
@@ -218,46 +320,41 @@ endmodule
 `default_nettype wire
 ```
 
-### `src/tt_um_inverter.v` — TinyTapeout wrapper
+### `src/tt_um_inverter.v` — TinyTapeout dual-mode wrapper
 
 ```verilog
-`default_nettype none
-`timescale 1ns / 1ps
-
-module tt_um_inverter (
-    input  wire [7:0] ui_in,
-    output wire [7:0] uo_out,
-    input  wire [7:0] uio_in,
-    output wire [7:0] uio_out,
-    output wire [7:0] uio_oe,
-    input  wire       ena,
-    input  wire       clk,
-    input  wire       rst_n
-);
+module tt_um_inverter ( ... );
     wire inv_out;
+    wire [7:0] ca_next;
 
     inverter u_inv (.in(ui_in[0]), .out(inv_out));
 
-    assign uo_out  = {7'b0, inv_out};  // bit 0 carries signal; [7:1] = 0
+    ca235_row #(.N(8)) u_ca (.state(ui_in), .next_state(ca_next));
+
+    // ui_in[7]=0 → inverter; ui_in[7]=1 → CA-235
+    assign uo_out  = ui_in[7] ? ca_next : {7'b0, inv_out};
     assign uio_out = 8'b0;
     assign uio_oe  = 8'b0;
 
-    // Constant-fold tie-off; prevents inferred logic and lint warnings
-    wire _unused_ok = &{ena, clk, rst_n, ui_in[7:1], uio_in};
+    wire _unused_ok = &{ena, clk, rst_n, uio_in};
 endmodule
-`default_nettype wire
 ```
 
 **Post-synthesis cell count:**
 
 | Cell | Count | Purpose |
 |------|-------|---------|
-| `sky130_fd_sc_hd__inv_1` | 1 | Active inverter |
-| `sky130_fd_sc_hd__conb_1` | ~19 | Tie constant-0 to unused outputs |
+| `sky130_fd_sc_hd__inv_1` | 1 | CMOS inverter |
+| `sky130_fd_sc_hd__xor2_1` | 8 | CA-235 L^C |
+| `sky130_fd_sc_hd__inv_X` | 8 | CA-235 ~(L^C) |
+| `sky130_fd_sc_hd__or2_1` | 8 | CA-235 R\|~(L^C) |
+| `sky130_fd_sc_hd__mux2_1` | 8 | Mode select mux |
+| `sky130_fd_sc_hd__conb_1` | ~19 | Tie-off cells |
+| **Total** | **~52** | **≈ 130 µm²** |
 
 ---
 
-## 6. OpenLane / SKY130 flow
+## 7. OpenLane / SKY130 flow
 
 OpenLane runs inside **`efabless/openlane:2023.07.19-1`** and drives all tools
 through a single `flow.tcl` script.
@@ -293,7 +390,11 @@ through a single `flow.tcl` script.
 
 ---
 
-## 7. All flow stages
+## 8. All flow stages
+
+> Visual: [pipeline SVG](docs/visuals/03_openlane_flow/openlane_pipeline.svg) · [stage outputs table](docs/visuals/03_openlane_flow/stage_outputs.md) · [Docker volumes](docs/visuals/03_openlane_flow/docker_volumes.md)
+
+![OpenLane pipeline](docs/visuals/03_openlane_flow/openlane_pipeline.svg)
 
 ```
   ╔═════════════════════════════════════════════════════════════════════╗
@@ -401,6 +502,10 @@ through a single `flow.tcl` script.
 
 ### Power delivery network
 
+> Visual: [floorplan SVG](docs/visuals/04_floorplan_layout/tt_tile_floorplan.svg) · [PDN layer stack](docs/visuals/04_floorplan_layout/pdn_layers.md)
+
+![TT tile floorplan](docs/visuals/04_floorplan_layout/tt_tile_floorplan.svg)
+
 ```
   Layer   Width     Pitch      Offset    Direction   Role
   ──────  ────────  ─────────  ────────  ──────────  ────────────────
@@ -412,7 +517,7 @@ through a single `flow.tcl` script.
 
 ---
 
-## 8. Docker setup and execution
+## 9. Docker setup and execution
 
 ### Prerequisites
 
@@ -485,24 +590,26 @@ $PDK_ROOT       /pdks            SKY130A PDK (volare-managed)
 
 ---
 
-## 9. RTL simulation
+## 10. RTL simulation
 
-The testbench sweeps all 256 `ui_in` patterns and verifies three invariants:
+> Visual: [waveform diagram](docs/visuals/06_simulation/waveform_dual_mode.md) · [test vectors](docs/visuals/06_simulation/test_vectors.md)
 
-| Property | Expression |
-|----------|-----------|
-| Inverter correct | `uo_out[0] == ~ui_in[0]` |
-| Unused bits tied low | `uo_out[7:1] == 0` |
-| Bidir IOs all inputs | `uio_oe == 8'h00 && uio_out == 8'h00` |
+The testbench covers both operating modes — 256 patterns total:
+
+| Mode | Patterns | Property checked |
+|------|----------|-----------------|
+| Inverter (`ui_in[7]=0`) | 128 | `uo_out == {7'b0, ~ui_in[0]}` |
+| CA-235 (`ui_in[7]=1`) | 128 | `uo_out == ca235_ref(ui_in)` |
+| Both modes | 256 | `uio_oe == 8'h00 && uio_out == 8'h00` |
 
 **Expected output:**
 ```
 VCD info: dumpfile tb_tt_um_inverter.vcd opened for output.
-Simulation complete: 256 PASS  0 FAIL
+Inverter+CA-235 tests: 256 PASS  0 FAIL
 ALL TESTS PASSED
 ```
 
-**Annotated waveform:**
+**Inverter mode waveform:**
 ```
   clk        ┌────┐    ┌────┐    ┌────┐    ┌────┐   (100 MHz)
              └────┘    └────┘    └────┘    └────┘
@@ -529,7 +636,9 @@ gtkwave tb_tt_um_inverter.vcd &
 
 ---
 
-## 10. Expected outputs
+## 11. Expected outputs
+
+> Visual: [signoff checklist](docs/visuals/05_signoff_results/signoff_checklist.md) · [stage outputs detail](docs/visuals/03_openlane_flow/stage_outputs.md)
 
 | Stage | Output file | Pass condition |
 |-------|-------------|----------------|
@@ -556,7 +665,7 @@ tinytapeout/openlane/tt_um_inverter/runs/<RUN_TAG>/
 
 ---
 
-## 11. TinyTapeout signoff checklist
+## 12. TinyTapeout signoff checklist
 
 ```
 ┌─────────────────────────────────────────────────────┬──────────┬────────┐
@@ -588,7 +697,7 @@ tinytapeout/openlane/tt_um_inverter/runs/<RUN_TAG>/
 
 ---
 
-## 12. ORFS native flow
+## 13. ORFS native flow
 
 The design is wired into `flow/designs/sky130hd/tt_inverter/config.mk`
 for execution without Docker using a local OpenROAD installation.
@@ -618,7 +727,7 @@ flow/reports/sky130hd/tt_inverter/       timing, DRC, LVS reports
 
 ---
 
-## 13. Key configuration reference
+## 14. Key configuration reference
 
 ### OpenLane `config.json` parameters
 
@@ -650,7 +759,40 @@ flow/reports/sky130hd/tt_inverter/       timing, DRC, LVS reports
 
 ---
 
-## 14. OpenROAD-flow-scripts
+## 15. Visual outputs
+
+All visual assets are saved under [`docs/visuals/`](docs/visuals/) in section-specific sub-folders.
+
+| Folder | Contents |
+|--------|---------|
+| [`01_ca235_rule/`](docs/visuals/01_ca235_rule/) | [Truth table & derivation](docs/visuals/01_ca235_rule/ca235_truth_table.md) · [State evolution](docs/visuals/01_ca235_rule/ca235_state_evolution.md) · [Cell circuit SVG](docs/visuals/01_ca235_rule/ca235_cell_circuit.svg) · [8-cell row SVG](docs/visuals/01_ca235_rule/ca235_row_8cell.svg) |
+| [`02_rtl_design/`](docs/visuals/02_rtl_design/) | [CMOS inverter schematic SVG](docs/visuals/02_rtl_design/cmos_inverter_schematic.svg) · [Dual-mode block SVG](docs/visuals/02_rtl_design/dual_mode_top_block.svg) · [Port mapping](docs/visuals/02_rtl_design/port_mapping.md) |
+| [`03_openlane_flow/`](docs/visuals/03_openlane_flow/) | [Pipeline SVG](docs/visuals/03_openlane_flow/openlane_pipeline.svg) · [Stage outputs](docs/visuals/03_openlane_flow/stage_outputs.md) · [Docker volumes](docs/visuals/03_openlane_flow/docker_volumes.md) |
+| [`04_floorplan_layout/`](docs/visuals/04_floorplan_layout/) | [Tile floorplan SVG](docs/visuals/04_floorplan_layout/tt_tile_floorplan.svg) · [PDN layer stack](docs/visuals/04_floorplan_layout/pdn_layers.md) |
+| [`05_signoff_results/`](docs/visuals/05_signoff_results/) | [Signoff checklist](docs/visuals/05_signoff_results/signoff_checklist.md) |
+| [`06_simulation/`](docs/visuals/06_simulation/) | [Waveforms (dual mode)](docs/visuals/06_simulation/waveform_dual_mode.md) · [Test vectors](docs/visuals/06_simulation/test_vectors.md) |
+
+### Inline diagrams
+
+**CA-235 cell gate circuit:**
+
+![CA-235 cell circuit](docs/visuals/01_ca235_rule/ca235_cell_circuit.svg)
+
+**CMOS inverter schematic:**
+
+![CMOS inverter](docs/visuals/02_rtl_design/cmos_inverter_schematic.svg)
+
+**8-stage OpenLane pipeline:**
+
+![OpenLane pipeline](docs/visuals/03_openlane_flow/openlane_pipeline.svg)
+
+**TT tile floorplan (160 × 100 µm):**
+
+![TT tile floorplan](docs/visuals/04_floorplan_layout/tt_tile_floorplan.svg)
+
+---
+
+## 16. OpenROAD-flow-scripts
 
 This repository is built on
 [OpenROAD-flow-scripts (ORFS)](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts) —

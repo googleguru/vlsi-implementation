@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <style>
+    .bg  { fill:#f8fafc; stroke:#cbd5e1; stroke-width:1; }
+    .mod { fill:#eff6ff; stroke:#3b82f6; stroke-width:2; }
+    .blk { fill:#dbeafe; stroke:#1d4ed8; stroke-width:1.5; }
+    .mux { fill:#fef9c3; stroke:#ca8a04; stroke-width:1.5; }
+    .pin { fill:#dcfce7; stroke:#16a34a; stroke-width:1.2; }
+    .w   { stroke:#374151; stroke-width:1.5; fill:none; }
+    .wc  { stroke:#dc2626; stroke-width:1.5; fill:none; stroke-dasharray:4,2; }
+    .tb  { font-family:monospace; font-size:12px; font-weight:bold; }
+    .ti  { font-family:monospace; font-size:10px; }
+    .hl  { font-family:monospace; font-size:14px; font-weight:bold; }
+  </style>
+  <defs>
+    <marker id="a" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#374151"/>
+    </marker>
+    <marker id="ar" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <rect width="640" height="360" rx="8" class="bg"/>
+  <text x="320" y="22" text-anchor="middle" class="hl" fill="#1e3a5f">tt_um_inverter — Dual-Mode Top Module</text>
+
+  <!-- Outer module boundary -->
+  <rect x="160" y="35" width="320" height="290" rx="8" class="mod"/>
+  <text x="320" y="55" text-anchor="middle" class="tb" fill="#1d4ed8">tt_um_inverter</text>
+  <text x="320" y="70" text-anchor="middle" class="ti" fill="#6b7280">sky130_fd_sc_hd  |  160×100 µm  |  SKY130A</text>
+
+  <!-- inverter block -->
+  <rect x="190" y="88" width="100" height="48" rx="5" class="blk"/>
+  <text x="240" y="109" text-anchor="middle" class="tb" fill="#1d4ed8">inverter</text>
+  <text x="240" y="124" text-anchor="middle" class="ti">out=~in</text>
+
+  <!-- ca235_row block -->
+  <rect x="190" y="155" width="100" height="48" rx="5" class="blk"/>
+  <text x="240" y="175" text-anchor="middle" class="tb" fill="#1d4ed8">ca235_row</text>
+  <text x="240" y="191" text-anchor="middle" class="ti">N=8</text>
+
+  <!-- MUX block -->
+  <rect x="340" y="100" width="80" height="100" rx="5" class="mux"/>
+  <text x="380" y="143" text-anchor="middle" class="tb" fill="#92400e">2:1</text>
+  <text x="380" y="158" text-anchor="middle" class="tb" fill="#92400e">MUX</text>
+  <text x="380" y="174" text-anchor="middle" class="ti">sel=ui_in[7]</text>
+
+  <!-- inverter → MUX wire (top path) -->
+  <line x1="290" y1="112" x2="340" y2="130" class="w" marker-end="url(#a)"/>
+
+  <!-- ca235 → MUX wire (bottom path) -->
+  <line x1="290" y1="179" x2="340" y2="165" class="w" marker-end="url(#a)"/>
+
+  <!-- Mode select (ui_in[7]) dashed red into MUX -->
+  <line x1="200" y1="220" x2="380" y2="220" class="wc"/>
+  <line x1="380" y1="220" x2="380" y2="200" class="wc" marker-end="url(#ar)"/>
+  <text x="285" y="235" text-anchor="middle" class="ti" fill="#dc2626">ui_in[7]=sel</text>
+
+  <!-- ui_in[7:0] input port (left side) -->
+  <rect x="32" y="85" width="112" height="52" rx="4" class="pin"/>
+  <text x="88" y="107" text-anchor="middle" class="tb" fill="#166534">ui_in[7:0]</text>
+  <text x="88" y="122" text-anchor="middle" class="ti" fill="#166534">8-bit input</text>
+
+  <!-- ui_in wire to inverter -->
+  <line x1="144" y1="102" x2="190" y2="102" class="w" marker-end="url(#a)"/>
+  <!-- ui_in wire to ca235 (same bus, vertical) -->
+  <line x1="144" y1="102" x2="144" y2="175" class="w"/>
+  <line x1="144" y1="175" x2="190" y2="175" class="w" marker-end="url(#a)"/>
+  <!-- mode select tap -->
+  <line x1="144" y1="175" x2="144" y2="220" class="wc"/>
+  <line x1="144" y1="220" x2="200" y2="220" class="wc"/>
+
+  <!-- uo_out[7:0] output port (right side) -->
+  <rect x="496" y="118" width="112" height="52" rx="4" class="pin"/>
+  <text x="552" y="140" text-anchor="middle" class="tb" fill="#166534">uo_out[7:0]</text>
+  <text x="552" y="155" text-anchor="middle" class="ti" fill="#166534">8-bit output</text>
+
+  <!-- MUX → uo_out wire -->
+  <line x1="420" y1="150" x2="496" y2="144" class="w" marker-end="url(#a)"/>
+
+  <!-- uio_* ports (bottom) -->
+  <rect x="190" y="258" width="260" height="52" rx="4" class="pin"/>
+  <text x="320" y="278" text-anchor="middle" class="tb" fill="#166534">uio_out / uio_oe  =  0x00  always</text>
+  <text x="320" y="294" text-anchor="middle" class="ti" fill="#166534">bidir IO never driven  (uio_oe=0)</text>
+
+  <!-- control ports label -->
+  <rect x="32" y="158" width="112" height="52" rx="4" class="pin"/>
+  <text x="88" y="178" text-anchor="middle" class="tb" fill="#166534">clk / rst_n</text>
+  <text x="88" y="193" text-anchor="middle" class="ti" fill="#166534">ena  uio_in</text>
+  <text x="88" y="207" text-anchor="middle" class="ti" fill="#6b7280">(unused, tied off)</text>
+
+  <!-- Mode select legend -->
+  <rect x="22" y="318" width="595" height="32" rx="4" fill="#fffbeb" stroke="#fbbf24" stroke-width="1"/>
+  <text x="320" y="333" text-anchor="middle" font-family="monospace" font-size="10px" fill="#92400e">
+    ui_in[7]=0  →  INVERTER MODE:  uo_out = {7b0, ~ui_in[0]}
+  </text>
+  <text x="320" y="346" text-anchor="middle" font-family="monospace" font-size="10px" fill="#92400e">
+    ui_in[7]=1  →  CA-235  MODE:   uo_out = CA-235 next-state( ui_in[7:0] )
+  </text>
+</svg>
