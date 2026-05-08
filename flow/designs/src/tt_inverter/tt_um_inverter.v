@@ -1,13 +1,11 @@
-// TinyTapeout top-level wrapper — SKY130 / OpenLane compatible
-// Interface: TinyTapeout v5+ standard (8-bit user IO bus)
-//   ui_in[7:0]  dedicated inputs from the TT mux
-//   uo_out[7:0] dedicated outputs to the TT mux
-//   uio_in[7:0] bidirectional IOs — input path
-//   uio_out[7:0] bidirectional IOs — output path
-//   uio_oe[7:0]  bidirectional IOs — output enable (1 = output)
-//   ena          power-on enable; ignore when not using power gating
-//   clk          system clock supplied by TT wrapper
-//   rst_n        active-low synchronous reset from TT wrapper
+// TinyTapeout top-level — CMOS inverter + CA Rule-235 (dual-mode).
+// Die area: 160 µm × 100 µm (single TT tile, sky130_fd_sc_hd).
+//
+// Pin mapping:
+//   ui_in[7]=0  INVERTER MODE  uo_out[0] = ~ui_in[0]  uo_out[7:1] = 0
+//   ui_in[7]=1  CA-235  MODE   uo_out[7:0] = CA-235 next-state(ui_in[7:0])
+//                              (wrap-around 8-cell, ui_in[7] participates)
+//   uio_*       never driven   uio_oe = 0 always
 `default_nettype none
 `timescale 1ns / 1ps
 
@@ -21,22 +19,25 @@ module tt_um_inverter (
     input  wire       clk,
     input  wire       rst_n
 );
-    wire inv_out;
+    wire        inv_out;
+    wire [7:0]  ca_next;
 
     inverter u_inv (
         .in  (ui_in[0]),
         .out (inv_out)
     );
 
-    // Only bit 0 carries the inverted signal; upper bits are tied low
-    assign uo_out  = {7'b000_0000, inv_out};
+    ca235_row #(.N(8)) u_ca (
+        .state     (ui_in),
+        .next_state(ca_next)
+    );
 
-    // Bidir port unused — all driven to 0, all set as inputs
-    assign uio_out = 8'b0000_0000;
-    assign uio_oe  = 8'b0000_0000;
+    // ui_in[7]=0 → inverter mode; ui_in[7]=1 → CA-235 mode
+    assign uo_out  = ui_in[7] ? ca_next : {7'b0, inv_out};
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
 
-    // Suppress "unused signal" lint warnings; tools will constant-fold this away
-    wire _unused_ok = &{ena, clk, rst_n, ui_in[7:1], uio_in};
+    wire _unused_ok = &{ena, clk, rst_n, uio_in};
 
 endmodule
 `default_nettype wire

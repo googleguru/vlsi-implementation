@@ -73,6 +73,8 @@ sim:
 	iverilog -g2012 -o /tmp/tb_tt_um_inverter \
 	    test/tb_tt_um_inverter.v \
 	    src/inverter.v \
+	    src/ca235_cell.v \
+	    src/ca235_row.v \
 	    src/tt_um_inverter.v
 	vvp /tmp/tb_tt_um_inverter
 

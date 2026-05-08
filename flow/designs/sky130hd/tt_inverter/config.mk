@@ -10,6 +10,8 @@ export PLATFORM        = sky130hd
 # ── RTL sources ─────────────────────────────────────────────
 export VERILOG_FILES = \
     $(DESIGN_DIR)/../../src/$(DESIGN_NICKNAME)/inverter.v \
+    $(DESIGN_DIR)/../../src/$(DESIGN_NICKNAME)/ca235_cell.v \
+    $(DESIGN_DIR)/../../src/$(DESIGN_NICKNAME)/ca235_row.v \
     $(DESIGN_DIR)/../../src/$(DESIGN_NICKNAME)/tt_um_inverter.v
 
 # ── Timing constraints ───────────────────────────────────────

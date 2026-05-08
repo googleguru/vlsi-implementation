@@ -3,6 +3,8 @@
 
     "VERILOG_FILES"    : [
         "dir::../../src/inverter.v",
+        "dir::../../src/ca235_cell.v",
+        "dir::../../src/ca235_row.v",
         "dir::../../src/tt_um_inverter.v"
     ],
 
